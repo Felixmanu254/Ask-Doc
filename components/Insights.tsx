@@ -1,0 +1,105 @@
+import React, { useState } from 'react';
+import { Sparkles, Loader2, BarChart3, AlertCircle } from 'lucide-react';
+import { MoodEntry, JournalEntry } from '../types';
+import { generateInsights } from '../services/geminiService';
+
+interface InsightsProps {
+  moods: MoodEntry[];
+  journals: JournalEntry[];
+}
+
+const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
+  const [insightData, setInsightData] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGenerateInsights = async () => {
+    setIsLoading(true);
+    try {
+      const result = await generateInsights(moods, journals);
+      setInsightData(result);
+    } catch (error) {
+      console.error("Failed to generate insights", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const hasData = moods.length > 0 || journals.length > 0;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-center gap-3 mb-2">
+            <Sparkles size={24} className="text-yellow-300" />
+            <h2 className="text-2xl font-bold">AI Wellness Insights</h2>
+        </div>
+        <p className="text-purple-100 opacity-90">Discover patterns in your emotional journey.</p>
+      </div>
+
+      <div className="bg-white dark:bg-sage-900 rounded-2xl shadow-sm border border-sage-100 dark:border-sage-800 p-6 min-h-[300px] flex flex-col transition-colors duration-300">
+        {!insightData && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                {!hasData ? (
+                    <div className="text-sage-400 dark:text-sage-600 space-y-4">
+                        <BarChart3 size={48} className="mx-auto opacity-50" />
+                        <p>Log some moods or journal entries to unlock personalized insights.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        <div className="p-4 bg-sage-50 dark:bg-sage-800 rounded-full inline-block">
+                            <Sparkles size={32} className="text-purple-500" />
+                        </div>
+                        <div className="max-w-md">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Ready to Analyze</h3>
+                            <p className="text-gray-500 dark:text-gray-400 mb-6">
+                                Ask Doc can analyze your {moods.length} mood logs and {journals.length} journal entries to help you understand your patterns better.
+                            </p>
+                            <button
+                                onClick={handleGenerateInsights}
+                                disabled={isLoading}
+                                className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium flex items-center gap-2 mx-auto disabled:opacity-70"
+                            >
+                                {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                                {isLoading ? 'Analyzing...' : 'Generate Insights'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {insightData && (
+            <div className="animate-fade-in">
+                <div className="flex justify-between items-start mb-6">
+                     <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">Your Wellness Report</h3>
+                     <button 
+                        onClick={handleGenerateInsights}
+                        disabled={isLoading}
+                        className="text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 underline flex items-center gap-1"
+                     >
+                        <Loader2 className={isLoading ? "animate-spin" : "hidden"} size={12} />
+                        Refresh Analysis
+                     </button>
+                </div>
+               
+                <div className="prose prose-sm prose-sage dark:prose-invert max-w-none">
+                    <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-200 leading-relaxed space-y-4">
+                        {insightData}
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-sage-100 dark:border-sage-800 flex items-start gap-3 bg-calm-50 dark:bg-sky-900/20 p-4 rounded-xl">
+                    <AlertCircle size={20} className="text-calm-500 dark:text-sky-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-calm-700 dark:text-sky-200">
+                        This analysis is generated by AI based on your logs. It is for self-reflection only and not a clinical diagnosis. 
+                        Always consult with a professional for mental health concerns.
+                    </p>
+                </div>
+            </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Insights;
