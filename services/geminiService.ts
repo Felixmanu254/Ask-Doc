@@ -7,20 +7,44 @@ const MODEL_NAME = "gemini-2.5-flash";
 
 let aiInstance: GoogleGenAI | null = null;
 
+const getApiKey = (): string => {
+    let key = '';
+    
+    // Attempt 1: Standard Node/Bundler env (process.env.API_KEY)
+    // We wrap in try-catch because 'process' might not exist in the browser,
+    // but some bundlers replace the whole expression 'process.env.API_KEY' with the string value.
+    try {
+        if (process.env.API_KEY) return process.env.API_KEY;
+    } catch (e) {}
+
+    // Attempt 2: Vercel / Next.js Public Convention (NEXT_PUBLIC_API_KEY)
+    try {
+        if (process.env.NEXT_PUBLIC_API_KEY) return process.env.NEXT_PUBLIC_API_KEY;
+    } catch (e) {}
+
+    // Attempt 3: Create React App Convention (REACT_APP_API_KEY)
+    try {
+        if (process.env.REACT_APP_API_KEY) return process.env.REACT_APP_API_KEY;
+    } catch (e) {}
+
+    // Attempt 4: Vite Convention (import.meta.env.VITE_API_KEY)
+    try {
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+            // @ts-ignore
+            return import.meta.env.VITE_API_KEY;
+        }
+    } catch (e) {}
+
+    return '';
+};
+
 const getAIInstance = (): GoogleGenAI => {
   if (!aiInstance) {
-    let apiKey = '';
-    try {
-        // Safe access to process.env to prevent ReferenceErrors in strict browser environments
-        if (typeof process !== 'undefined' && process.env) {
-            apiKey = process.env.API_KEY || '';
-        }
-    } catch (e) {
-        console.warn("Error accessing process.env:", e);
-    }
+    const apiKey = getApiKey();
 
     if (!apiKey) {
-        console.error("API_KEY is missing from environment variables.");
+        console.error("API_KEY is missing. Checked: process.env.API_KEY, NEXT_PUBLIC_API_KEY, REACT_APP_API_KEY, VITE_API_KEY");
         throw new Error("API Key not found");
     }
     aiInstance = new GoogleGenAI({ apiKey });
