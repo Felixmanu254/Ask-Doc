@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, BarChart3, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, BarChart3, AlertCircle, WifiOff } from 'lucide-react';
 import { MoodEntry, JournalEntry } from '../types';
 import { generateInsights } from '../services/geminiService';
 
@@ -11,24 +11,32 @@ interface InsightsProps {
 const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
   const [insightData, setInsightData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleGenerateInsights = async () => {
     setIsLoading(true);
     setInsightData(null); // Clear previous result
+    setErrorMessage(null);
+
     try {
       const result = await generateInsights(moods, journals);
       setInsightData(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate insights", error);
-      setInsightData("I'm having trouble analyzing your data right now. Please try again later.");
+      if (error.message === "API Key not found") {
+          setErrorMessage("Configuration Error: API Key is missing. Please check your Vercel environment variables.");
+      } else {
+          setInsightData("I'm having trouble analyzing your data right now. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const hasData = moods.length > 0 || journals.length > 0;
-  // Simple heuristic to detect error messages returned by the service
-  const isError = insightData?.includes("trouble analyzing") || insightData?.includes("Unable to generate");
+  // Simple heuristic to detect generic service error messages returned as text
+  const isGenericError = insightData?.includes("trouble analyzing") || insightData?.includes("Unable to generate");
+  const isError = isGenericError || !!errorMessage;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -41,7 +49,7 @@ const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
       </div>
 
       <div className="bg-white dark:bg-sage-900 rounded-2xl shadow-sm border border-sage-100 dark:border-sage-800 p-6 min-h-[300px] flex flex-col transition-colors duration-300">
-        {!insightData && !isLoading && (
+        {!insightData && !isLoading && !errorMessage && (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 {!hasData ? (
                     <div className="text-sage-400 dark:text-sage-600 space-y-4">
@@ -79,11 +87,27 @@ const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
              </div>
         )}
 
-        {insightData && !isLoading && (
+        {errorMessage && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full text-red-600 dark:text-red-400 mb-4">
+                    <WifiOff size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Connection Issue</h3>
+                <p className="text-red-600 dark:text-red-400 text-sm max-w-sm">{errorMessage}</p>
+                <button 
+                    onClick={handleGenerateInsights}
+                    className="mt-6 px-4 py-2 bg-sage-100 dark:bg-sage-800 text-sage-700 dark:text-sage-300 rounded-lg text-sm hover:bg-sage-200 dark:hover:bg-sage-700 transition-colors"
+                >
+                    Try Again
+                </button>
+            </div>
+        )}
+
+        {insightData && !isLoading && !errorMessage && (
             <div className="animate-fade-in">
                 <div className="flex justify-between items-start mb-6">
-                     <h3 className={`text-xl font-bold ${isError ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
-                        {isError ? 'Analysis Failed' : 'Your Wellness Report'}
+                     <h3 className={`text-xl font-bold ${isGenericError ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                        {isGenericError ? 'Analysis Failed' : 'Your Wellness Report'}
                      </h3>
                      <button 
                         onClick={handleGenerateInsights}
@@ -94,13 +118,13 @@ const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
                      </button>
                 </div>
                
-                <div className={`prose prose-sm max-w-none ${isError ? 'text-red-600 dark:text-red-300' : 'prose-sage dark:prose-invert text-gray-700 dark:text-gray-200'}`}>
+                <div className={`prose prose-sm max-w-none ${isGenericError ? 'text-red-600 dark:text-red-300' : 'prose-sage dark:prose-invert text-gray-700 dark:text-gray-200'}`}>
                     <div className="whitespace-pre-wrap leading-relaxed space-y-4">
                         {insightData}
                     </div>
                 </div>
 
-                {!isError && (
+                {!isGenericError && (
                     <div className="mt-8 pt-4 border-t border-sage-100 dark:border-sage-800 flex items-start gap-3 bg-calm-50 dark:bg-sky-900/20 p-4 rounded-xl">
                         <AlertCircle size={20} className="text-calm-500 dark:text-sky-400 shrink-0 mt-0.5" />
                         <p className="text-xs text-calm-700 dark:text-sky-200">

@@ -9,11 +9,21 @@ let aiInstance: GoogleGenAI | null = null;
 
 const getAIInstance = (): GoogleGenAI => {
   if (!aiInstance) {
-    if (!process.env.API_KEY) {
+    let apiKey = '';
+    try {
+        // Safe access to process.env to prevent ReferenceErrors in strict browser environments
+        if (typeof process !== 'undefined' && process.env) {
+            apiKey = process.env.API_KEY || '';
+        }
+    } catch (e) {
+        console.warn("Error accessing process.env:", e);
+    }
+
+    if (!apiKey) {
         console.error("API_KEY is missing from environment variables.");
         throw new Error("API Key not found");
     }
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
 };
@@ -32,8 +42,8 @@ export const createChatSession = (): Chat => {
 };
 
 export const generateJournalFeedback = async (entry: string): Promise<string> => {
-    const ai = getAIInstance();
     try {
+        const ai = getAIInstance();
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: MODEL_NAME,
             contents: `The user has written the following journal entry: "${entry}".
@@ -45,23 +55,24 @@ export const generateJournalFeedback = async (entry: string): Promise<string> =>
             }
         });
         return response.text || "Thank you for sharing your thoughts.";
-    } catch (error) {
+    } catch (error: any) {
+        if (error.message === "API Key not found") return "Ask Doc is offline (API Key Missing).";
         console.error("Error generating journal feedback:", error);
         return "Your entry has been saved. Writing is a powerful tool for clarity.";
     }
 };
 
 export const generateInsights = async (moods: MoodEntry[], journals: JournalEntry[]): Promise<string> => {
-  const ai = getAIInstance();
-  
-  if (moods.length === 0 && journals.length === 0) {
-      return "I need a bit more information to generate insights. Please try logging your mood or writing a journal entry first so I can get to know you better.";
-  }
-
-  const moodData = moods.map(m => `- ${new Date(m.timestamp).toLocaleDateString()}: ${m.mood} (Intensity ${m.intensity}/10). Note: ${m.note}`).join('\n');
-  const journalData = journals.map(j => `- ${new Date(j.timestamp).toLocaleDateString()}: Prompt: "${j.prompt}" Content: "${j.content}"`).join('\n');
-
   try {
+      const ai = getAIInstance();
+      
+      if (moods.length === 0 && journals.length === 0) {
+          return "I need a bit more information to generate insights. Please try logging your mood or writing a journal entry first so I can get to know you better.";
+      }
+
+      const moodData = moods.map(m => `- ${new Date(m.timestamp).toLocaleDateString()}: ${m.mood} (Intensity ${m.intensity}/10). Note: ${m.note}`).join('\n');
+      const journalData = journals.map(j => `- ${new Date(j.timestamp).toLocaleDateString()}: Prompt: "${j.prompt}" Content: "${j.content}"`).join('\n');
+
       const response: GenerateContentResponse = await ai.models.generateContent({
           model: MODEL_NAME,
           contents: `Analyze the following user wellness data to identify emotional patterns and suggest coping strategies.
@@ -86,7 +97,10 @@ export const generateInsights = async (moods: MoodEntry[], journals: JournalEntr
           }
       });
       return response.text || "Unable to generate insights at this time.";
-  } catch (error) {
+  } catch (error: any) {
+      if (error.message === "API Key not found") {
+          throw error; // Re-throw to be handled by the component
+      }
       console.error("Error generating insights:", error);
       return "I'm having trouble analyzing your data right now. Please check your internet connection or try again later.";
   }
