@@ -2,8 +2,8 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 import { MoodEntry, JournalEntry } from "../types";
 
-// Using the user requested model for low latency
-const MODEL_NAME = "gemini-2.5-flash-lite";
+// Using standard Flash model for best balance of speed and stability
+const MODEL_NAME = "gemini-2.5-flash";
 
 let aiInstance: GoogleGenAI | null = null;
 
@@ -85,6 +85,6 @@ export const generateInsights = async (moods: MoodEntry[], journals: JournalEntr
       return response.text || "Unable to generate insights at this time.";
   } catch (error) {
       console.error("Error generating insights:", error);
-      return "I'm having trouble analyzing your data right now. Please try again later.";
+      return "I'm having trouble analyzing your data right now. Please check your internet connection or try again later.";
   }
 };

@@ -25,12 +25,16 @@ const ChatCompanion: React.FC = () => {
     if (!chatSessionRef.current) {
         try {
             chatSessionRef.current = createChatSession();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to init chat", e);
+            const errorMsg = e.message === "API Key not found" 
+                ? "API Key is missing. Please check your environment variables."
+                : "I'm having trouble connecting right now. Please check your configuration.";
+            
             setMessages(prev => [...prev, {
                 id: 'error-init',
                 role: 'model',
-                text: "I'm having trouble connecting right now. Please check your configuration.",
+                text: errorMsg,
                 timestamp: Date.now()
             }]);
         }
