@@ -24,9 +24,9 @@ const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
     } catch (error: any) {
       console.error("Failed to generate insights", error);
       if (error.message === "API Key not found") {
-          setErrorMessage("Configuration Error: API Key is missing. Please check your Vercel environment variables.");
+          setErrorMessage("Configuration Error: API Key is missing. Please check your Vercel environment variables and redeploy.");
       } else {
-          setInsightData("I'm having trouble analyzing your data right now. Please try again later.");
+          setErrorMessage("I'm having trouble analyzing your data right now. Error: " + (error.message || "Unknown error"));
       }
     } finally {
       setIsLoading(false);
@@ -93,10 +93,10 @@ const Insights: React.FC<InsightsProps> = ({ moods, journals }) => {
                     <WifiOff size={24} />
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Connection Issue</h3>
-                <p className="text-red-600 dark:text-red-400 text-sm max-w-sm">{errorMessage}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm max-w-sm mb-4">{errorMessage}</p>
                 <button 
                     onClick={handleGenerateInsights}
-                    className="mt-6 px-4 py-2 bg-sage-100 dark:bg-sage-800 text-sage-700 dark:text-sage-300 rounded-lg text-sm hover:bg-sage-200 dark:hover:bg-sage-700 transition-colors"
+                    className="mt-2 px-4 py-2 bg-sage-100 dark:bg-sage-800 text-sage-700 dark:text-sage-300 rounded-lg text-sm hover:bg-sage-200 dark:hover:bg-sage-700 transition-colors"
                 >
                     Try Again
                 </button>

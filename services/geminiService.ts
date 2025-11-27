@@ -8,33 +8,37 @@ const MODEL_NAME = "gemini-2.5-flash";
 let aiInstance: GoogleGenAI | null = null;
 
 const getApiKey = (): string => {
-    let key = '';
-    
-    // Attempt 1: Standard Node/Bundler env (process.env.API_KEY)
-    // We wrap in try-catch because 'process' might not exist in the browser,
-    // but some bundlers replace the whole expression 'process.env.API_KEY' with the string value.
-    try {
-        if (process.env.API_KEY) return process.env.API_KEY;
-    } catch (e) {}
+    // List of possible environment variable keys to check
+    // Browsers don't have 'process', but bundlers (Vite/Webpack) replace these strings at build time.
+    const candidates = [
+        'API_KEY',
+        'NEXT_PUBLIC_API_KEY',
+        'REACT_APP_API_KEY',
+        'VITE_API_KEY',
+        'GEMINI_API_KEY',
+        'NEXT_PUBLIC_GEMINI_API_KEY',
+        'VITE_GEMINI_API_KEY',
+        'REACT_APP_GEMINI_API_KEY'
+    ];
 
-    // Attempt 2: Vercel / Next.js Public Convention (NEXT_PUBLIC_API_KEY)
-    try {
-        if (process.env.NEXT_PUBLIC_API_KEY) return process.env.NEXT_PUBLIC_API_KEY;
-    } catch (e) {}
-
-    // Attempt 3: Create React App Convention (REACT_APP_API_KEY)
-    try {
-        if (process.env.REACT_APP_API_KEY) return process.env.REACT_APP_API_KEY;
-    } catch (e) {}
-
-    // Attempt 4: Vite Convention (import.meta.env.VITE_API_KEY)
-    try {
-        // @ts-ignore
-        if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    for (const key of candidates) {
+        try {
             // @ts-ignore
-            return import.meta.env.VITE_API_KEY;
-        }
-    } catch (e) {}
+            if (process.env[key]) return process.env[key];
+        } catch (e) {}
+        
+        try {
+            // @ts-ignore
+            if (import.meta.env && import.meta.env[key]) return import.meta.env[key];
+        } catch (e) {}
+    }
+
+    // Direct checks for common specific patterns that bundlers might replace literally
+    try { if (process.env.API_KEY) return process.env.API_KEY; } catch(e) {}
+    try { if (process.env.NEXT_PUBLIC_API_KEY) return process.env.NEXT_PUBLIC_API_KEY; } catch(e) {}
+    try { if (process.env.REACT_APP_API_KEY) return process.env.REACT_APP_API_KEY; } catch(e) {}
+    // @ts-ignore
+    try { if (import.meta.env.VITE_API_KEY) return import.meta.env.VITE_API_KEY; } catch(e) {}
 
     return '';
 };
@@ -44,7 +48,8 @@ const getAIInstance = (): GoogleGenAI => {
     const apiKey = getApiKey();
 
     if (!apiKey) {
-        console.error("API_KEY is missing. Checked: process.env.API_KEY, NEXT_PUBLIC_API_KEY, REACT_APP_API_KEY, VITE_API_KEY");
+        console.error("Ask Doc Error: API Key is missing.");
+        console.log("Troubleshooting: Ensure you have added 'API_KEY' (or 'NEXT_PUBLIC_API_KEY') to your Vercel Environment Variables and REDEPLOYED the app.");
         throw new Error("API Key not found");
     }
     aiInstance = new GoogleGenAI({ apiKey });
@@ -126,6 +131,6 @@ export const generateInsights = async (moods: MoodEntry[], journals: JournalEntr
           throw error; // Re-throw to be handled by the component
       }
       console.error("Error generating insights:", error);
-      return "I'm having trouble analyzing your data right now. Please check your internet connection or try again later.";
+      throw error; // Re-throw generic errors to be handled by component
   }
 };

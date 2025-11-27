@@ -31,7 +31,7 @@ const ChatCompanion: React.FC = () => {
             console.error("Failed to init chat", e);
             setIsOnline(false);
             const errorMsg = e.message === "API Key not found" 
-                ? "Configuration Error: API Key is missing.\n\nPlease add a variable named 'API_KEY' to your environment variables (e.g., in your Vercel settings or .env file) with your Google Gemini API key."
+                ? "Configuration Error: API Key is missing.\n\nIf you just added the key to Vercel, please REDEPLOY the project for the changes to take effect."
                 : "I'm having trouble connecting right now. Please check your internet connection and configuration.";
             
             setMessages(prev => [...prev, {
