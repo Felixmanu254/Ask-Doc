@@ -26,6 +26,7 @@ export const createChatSession = (): Chat => {
       systemInstruction: SYSTEM_INSTRUCTION,
       temperature: 0.7, // Warm and creative but stable
       maxOutputTokens: 500, // Keep responses relatively concise
+      thinkingConfig: { thinkingBudget: 0 }, // optimize for lowest latency
     },
   });
 };
@@ -40,6 +41,7 @@ export const generateJournalFeedback = async (entry: string): Promise<string> =>
             Do not analyze deeply, just acknowledge and validate.`,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
+                thinkingConfig: { thinkingBudget: 0 }, // optimize for lowest latency
             }
         });
         return response.text || "Thank you for sharing your thoughts.";
@@ -80,6 +82,7 @@ export const generateInsights = async (moods: MoodEntry[], journals: JournalEntr
           IMPORTANT: Start by explicitly stating this is an AI observation and not a medical diagnosis.`,
           config: {
               systemInstruction: SYSTEM_INSTRUCTION,
+              thinkingConfig: { thinkingBudget: 0 }, // optimize for lowest latency
           }
       });
       return response.text || "Unable to generate insights at this time.";
